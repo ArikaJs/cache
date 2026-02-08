@@ -1,0 +1,64 @@
+
+import { Repository } from './Repository';
+import { MemoryDriver } from './Drivers/MemoryDriver';
+import { Store } from './Contracts/Store';
+
+export class CacheManager {
+    protected stores: Map<string, Repository> = new Map();
+    protected customCreators: Map<string, (config: any) => Store> = new Map();
+
+    constructor(protected config: any) { }
+
+    public store(name?: string): Repository {
+        const storeName = name || this.config.default;
+
+        if (!this.stores.has(storeName)) {
+            this.stores.set(storeName, this.resolve(storeName));
+        }
+
+        return this.stores.get(storeName)!;
+    }
+
+    protected resolve(name: string): Repository {
+        const config = this.config.stores[name];
+
+        if (!config) {
+            throw new Error(`Cache store [${name}] is not defined.`);
+        }
+
+        if (this.customCreators.has(config.driver)) {
+            return new Repository(this.customCreators.get(config.driver)!(config));
+        }
+
+        const driverMethod = `create${config.driver.charAt(0).toUpperCase() + config.driver.slice(1)}Driver`;
+
+        if (typeof (this as any)[driverMethod] === 'function') {
+            return new Repository((this as any)[driverMethod](config));
+        }
+
+        throw new Error(`Driver [${config.driver}] is not supported.`);
+    }
+
+    protected createMemoryDriver(): Store {
+        return new MemoryDriver();
+    }
+
+    public extend(driver: string, callback: (config: any) => Store): this {
+        this.customCreators.set(driver, callback);
+        return this;
+    }
+
+    // Proxy common methods to default store
+    public async get(key: string, defaultValue: any = null) { return this.store().get(key, defaultValue); }
+    public async put(key: string, value: any, seconds: number) { return this.store().put(key, value, seconds); }
+    public async has(key: string) { return this.store().has(key); }
+    public async forever(key: string, value: any) { return this.store().forever(key, value); }
+    public async forget(key: string) { return this.store().forget(key); }
+    public async flush() { return this.store().flush(); }
+    public async increment(key: string, value: number = 1) { return this.store().increment(key, value); }
+    public async decrement(key: string, value: number = 1) { return this.store().decrement(key, value); }
+    public async add(key: string, value: any, seconds: number) { return this.store().add(key, value, seconds); }
+    public async pull(key: string, defaultValue: any = null) { return this.store().pull(key, defaultValue); }
+    public async remember(key: string, seconds: number, callback: () => Promise<any>) { return this.store().remember(key, seconds, callback); }
+    public async rememberForever(key: string, callback: () => Promise<any>) { return this.store().rememberForever(key, callback); }
+}
