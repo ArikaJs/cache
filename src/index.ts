@@ -37,3 +37,4 @@ export class Cache {
 export { CacheManager, Store };
 export { Repository } from './Repository';
 export { MemoryDriver } from './Drivers/MemoryDriver';
+export { DatabaseDriver } from './Drivers/DatabaseDriver';

@@ -1,13 +1,16 @@
-
 import { Repository } from './Repository';
 import { MemoryDriver } from './Drivers/MemoryDriver';
+import { DatabaseDriver } from './Drivers/DatabaseDriver';
 import { Store } from './Contracts/Store';
 
 export class CacheManager {
     protected stores: Map<string, Repository> = new Map();
     protected customCreators: Map<string, (config: any) => Store> = new Map();
+    protected database: any;
 
-    constructor(protected config: any) { }
+    constructor(protected config: any, database?: any) {
+        this.database = database;
+    }
 
     public store(name?: string): Repository {
         const storeName = name || this.config.default;
@@ -41,6 +44,14 @@ export class CacheManager {
 
     protected createMemoryDriver(): Store {
         return new MemoryDriver();
+    }
+
+    protected createDatabaseDriver(config: any): Store {
+        return new DatabaseDriver(
+            this.database.connection(config.connection),
+            config.table,
+            this.config.prefix || ''
+        );
     }
 
     public extend(driver: string, callback: (config: any) => Store): this {

@@ -58,13 +58,21 @@ await Cache.remember('settings', 300, async () => {
 
 ```ts
 export default {
-  default: 'memory',
+  default: process.env.CACHE_STORE || 'database',
 
   stores: {
     memory: {
-      driver: 'memory'
-    }
-  }
+      driver: 'memory',
+    },
+
+    database: {
+      driver: 'database',
+      table: 'cache',
+      connection: null,
+    },
+  },
+
+  prefix: process.env.CACHE_PREFIX || 'arika_cache',
 };
 ```
 
@@ -72,11 +80,22 @@ export default {
 
 ## 🧠 Supported Drivers (v1)
 
-| Driver | Status |
-| :--- | :--- |
-| Memory | ✅ Supported |
-| Redis | ⏳ Planned |
-| File | ⏳ Planned |
+| Driver | Status | Description |
+| :--- | :--- | :--- |
+| **Memory** | ✅ Supported | Default in-memory ephemeral storage |
+| **Database** | ✅ Supported | Persistent cache using your database |
+| **Redis** | ⏳ Planned | High-performance distributed cache |
+
+---
+
+## 🛠 Database Cache Setup
+
+To use the database driver, you need to create the `cache` table migration:
+
+```bash
+arika cache:table
+arika migrate
+```
 
 ---
 
@@ -97,7 +116,8 @@ cache/
 │   ├── CacheManager.ts
 │   ├── Repository.ts
 │   ├── Drivers/
-│   │   └── MemoryDriver.ts
+│   │   ├── MemoryDriver.ts
+│   │   └── DatabaseDriver.ts
 │   ├── Contracts/
 │   │   └── Store.ts
 │   └── index.ts
