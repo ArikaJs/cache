@@ -1,6 +1,7 @@
 import { Repository } from './Repository';
 import { MemoryDriver } from './Drivers/MemoryDriver';
 import { DatabaseDriver } from './Drivers/DatabaseDriver';
+import { RedisDriver } from './Drivers/RedisDriver';
 import { Store } from './Contracts/Store';
 
 export class CacheManager {
@@ -50,6 +51,13 @@ export class CacheManager {
         return new DatabaseDriver(
             this.database.connection(config.connection),
             config.table,
+            this.config.prefix || ''
+        );
+    }
+
+    protected createRedisDriver(config: any): Store {
+        return new RedisDriver(
+            config,
             this.config.prefix || ''
         );
     }

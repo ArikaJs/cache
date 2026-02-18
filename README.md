@@ -78,13 +78,66 @@ export default {
 
 ---
 
-## 🧠 Supported Drivers (v1)
-
 | Driver | Status | Description |
 | :--- | :--- | :--- |
 | **Memory** | ✅ Supported | Default in-memory ephemeral storage |
 | **Database** | ✅ Supported | Persistent cache using your database |
-| **Redis** | ⏳ Planned | High-performance distributed cache |
+| **Redis** | ✅ Supported | High-performance distributed cache (Standalone, Sentinel, Cluster) |
+
+---
+
+## 🏎️ Redis Cache Setup
+
+The Redis driver supports Standalone, Sentinel, and Cluster modes.
+
+### 1. Install Redis Package
+
+```bash
+npm install ioredis
+```
+
+### 2. Configure Environment
+
+Add Redis settings to your `.env` file:
+
+```env
+CACHE_STORE=redis
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+REDIS_DB=0
+```
+
+### 3. Advanced Redis Configuration
+
+ArikaJS supports Sentinel and Cluster modes. Configure these in `config/cache.ts`:
+
+#### Sentinel Mode
+```ts
+redis: {
+  driver: 'redis',
+  connection: 'default',
+  mode: 'sentinel',
+  nodes: [
+    { host: '127.0.0.1', port: 26379 },
+    { host: '127.0.0.1', port: 26380 },
+  ],
+  name: 'mymaster',
+},
+```
+
+#### Cluster Mode
+```ts
+redis: {
+  driver: 'redis',
+  mode: 'cluster',
+  nodes: [
+    { host: '127.0.0.1', port: 7000 },
+    { host: '127.0.0.1', port: 7001 },
+  ],
+},
+```
 
 ---
 
@@ -117,7 +170,8 @@ cache/
 │   ├── Repository.ts
 │   ├── Drivers/
 │   │   ├── MemoryDriver.ts
-│   │   └── DatabaseDriver.ts
+│   │   ├── DatabaseDriver.ts
+│   │   └── RedisDriver.ts
 │   ├── Contracts/
 │   │   └── Store.ts
 │   └── index.ts
