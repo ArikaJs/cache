@@ -32,6 +32,13 @@ export class Cache {
     public static async pull(key: string, defaultValue: any = null) { return this.getManager().pull(key, defaultValue); }
     public static async remember(key: string, seconds: number, callback: () => Promise<any>) { return this.getManager().remember(key, seconds, callback); }
     public static async rememberForever(key: string, callback: () => Promise<any>) { return this.getManager().rememberForever(key, callback); }
+
+    // Enterprise methods
+    public static async getMultiple(keys: string[]) { return this.getManager().getMultiple(keys); }
+    public static async putMultiple(values: Record<string, any>, seconds: number) { return this.getManager().putMultiple(values, seconds); }
+    public static async forgetMultiple(keys: string[]) { return this.getManager().forgetMultiple(keys); }
+    public static lock(name: string, seconds: number = 0, owner: string | null = null) { return this.getManager().lock(name, seconds, owner); }
+    public static tags(names: string | string[]) { return this.getManager().tags(names); }
 }
 
 export { CacheManager, Store };

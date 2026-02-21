@@ -1,5 +1,7 @@
-
 import { Store } from './Contracts/Store';
+import { CacheLock } from './CacheLock';
+import { TagSet } from './TagSet';
+import { TaggedStore } from './TaggedStore';
 
 export class Repository {
     constructor(protected store: Store) { }
@@ -76,6 +78,50 @@ export class Repository {
 
     async flush(): Promise<void> {
         await this.store.flush();
+    }
+
+    async getMultiple(keys: string[]): Promise<Record<string, any>> {
+        if (keys.length === 0) return {};
+        if (this.store.getMultiple) {
+            return await this.store.getMultiple(keys);
+        }
+
+        const results: Record<string, any> = {};
+        for (const key of keys) {
+            results[key] = await this.get(key);
+        }
+        return results;
+    }
+
+    async putMultiple(values: Record<string, any>, seconds: number): Promise<void> {
+        if (Object.keys(values).length === 0) return;
+        if (this.store.putMultiple) {
+            return await this.store.putMultiple(values, seconds);
+        }
+
+        for (const [key, value] of Object.entries(values)) {
+            await this.put(key, value, seconds);
+        }
+    }
+
+    async forgetMultiple(keys: string[]): Promise<void> {
+        if (keys.length === 0) return;
+        if (this.store.forgetMultiple) {
+            return await this.store.forgetMultiple(keys);
+        }
+
+        for (const key of keys) {
+            await this.forget(key);
+        }
+    }
+
+    lock(name: string, seconds: number = 0, owner: string | null = null): CacheLock {
+        return new CacheLock(this.store, name, seconds, owner);
+    }
+
+    tags(names: string | string[]): Repository {
+        const tagNames = Array.isArray(names) ? names : [names];
+        return new Repository(new TaggedStore(this.store, new TagSet(this.store, tagNames)));
     }
 
     getStore(): Store {

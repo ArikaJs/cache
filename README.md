@@ -11,10 +11,11 @@ It allows applications to store frequently accessed data in memory or external s
 
 - **Unified cache API**: Consistent interface across all drivers
 - **Multiple cache stores**: Support for various storage backends
-- **Driver-based architecture**: Pluggable storage drivers
 - **In-memory cache (v1)**: High-performance default storage
+- **Bulk Operations (v2)**: Fetch or store multiple items in one network trip
+- **Atomic Cache Locks (v2)**: Distributed locking for concurrency control
+- **Cache Tags (v2)**: Logical grouping of cache keys for selective invalidation
 - **TTL (time-to-live) support**: Automatic expiration of cached items
-- **Cache tagging**: Logical grouping of cache keys (planned)
 - **TypeScript-first design**: Strong typing for keys and values
 
 ---
@@ -49,6 +50,66 @@ const count = await Cache.get('users.count');
 // Get an item, or execute the callback and store the result if it doesn't exist
 await Cache.remember('settings', 300, async () => {
   return loadSettings();
+});
+```
+
+### 🏎️ Bulk Operations (High Performance)
+
+Save network round-trips by fetching/storing multiple keys at once:
+
+```ts
+// Fetch multiple (Returns Record<string, any>)
+const users = await Cache.getMultiple(['user:1', 'user:2', 'user:3']);
+
+// Store multiple securely
+await Cache.putMultiple({
+  'user:1': data1,
+  'user:2': data2
+}, 60);
+
+// Delete multiple
+await Cache.forgetMultiple(['user:1', 'user:2']);
+```
+
+### 🏷️ Cache Tags (Selective Invalidation)
+
+Group related cache entries using tags, so you can flush them together without affecting other cached data.
+
+```ts
+// Store items with tags
+await Cache.tags(['users', 'admins']).put('user:1', userData, 3600);
+await Cache.tags(['users']).put('user:2', userData, 3600);
+await Cache.tags(['posts']).put('post:1', postData, 3600);
+
+// Only flush items tagged with 'users' 
+// ('post:1' remains perfectly intact!)
+await Cache.tags(['users']).flush();
+```
+
+### 🔒 Atomic Cache Locks
+
+Prevent race conditions and cache stampedes in distributed systems (like overlapping webhook processing or expensive queries).
+
+```ts
+const lock = Cache.lock('processing-invoice-123', 10); // lock for 10 seconds
+
+if (await lock.acquire()) {
+  try {
+    // We hold the lock securely
+    await processInvoice();
+  } finally {
+    await lock.release();
+  }
+}
+
+// Alternatively, use the auto-releasing callback pattern:
+await lock.get(async () => {
+  // Executes only if acquired, and releases automatically
+});
+
+// Or seamlessly wait for a lock up to 5 seconds:
+await lock.block(5, async () => {
+  // Waits to acquire, then executes and releases natively
 });
 ```
 
@@ -168,10 +229,13 @@ cache/
 ├── src/
 │   ├── CacheManager.ts
 │   ├── Repository.ts
+│   ├── CacheLock.ts            ← Distributed atomic locks
+│   ├── TaggedStore.ts          ← Store wrapper for caching tags
+│   ├── TagSet.ts               ← Tag namespace generator
 │   ├── Drivers/
-│   │   ├── MemoryDriver.ts
-│   │   ├── DatabaseDriver.ts
-│   │   └── RedisDriver.ts
+│   │   ├── MemoryDriver.ts     ← In-Memory implementation
+│   │   ├── DatabaseDriver.ts   ← Knex wrapper for SQL
+│   │   └── RedisDriver.ts      ← Fully pipelined IoRedis
 │   ├── Contracts/
 │   │   └── Store.ts
 │   └── index.ts

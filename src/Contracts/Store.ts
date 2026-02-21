@@ -8,4 +8,10 @@ export interface Store {
     forget(key: string): Promise<void>;
     flush(): Promise<void>;
     getPrefix(): string;
+
+    // Advanced operations
+    add?(key: string, value: any, seconds: number): Promise<boolean>;
+    getMultiple?(keys: string[]): Promise<Record<string, any>>;
+    putMultiple?(values: Record<string, any>, seconds: number): Promise<void>;
+    forgetMultiple?(keys: string[]): Promise<void>;
 }

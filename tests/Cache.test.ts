@@ -83,4 +83,70 @@ describe('Cache', () => {
         await Cache.rememberForever('forever-key', async () => 'forever-value');
         assert.strictEqual(await Cache.get('forever-key'), 'forever-value');
     });
+
+    // ── Enterprise Features ─────────────────────────────────────────
+
+    it('can put, get, and forget multiple values', async () => {
+        await Cache.putMultiple({ 'm1': 'v1', 'm2': 'v2' }, 10);
+
+        const results = await Cache.getMultiple(['m1', 'm2', 'm3']);
+        assert.strictEqual(results['m1'], 'v1');
+        assert.strictEqual(results['m2'], 'v2');
+        assert.strictEqual(results['m3'], null);
+
+        await Cache.forgetMultiple(['m1', 'm2']);
+        const afterForget = await Cache.getMultiple(['m1', 'm2']);
+        assert.strictEqual(afterForget['m1'], null);
+    });
+
+    it('can use cache locks', async () => {
+        const lock = Cache.lock('test-lock', 10);
+
+        const acquired = await lock.acquire();
+        assert.strictEqual(acquired, true);
+
+        // Second lock attempt shouldn't succeed
+        const lock2 = Cache.lock('test-lock', 10);
+        assert.strictEqual(await lock2.acquire(), false);
+
+        await lock.release();
+
+        // After release, should succeed
+        assert.strictEqual(await lock2.acquire(), true);
+        await lock2.release();
+    });
+
+    it('can execute callbacks safely using lock.get()', async () => {
+        const lock = Cache.lock('callback-lock', 10);
+        let executed = false;
+
+        const result = await lock.get(async () => {
+            executed = true;
+            return 'done';
+        });
+
+        assert.strictEqual(result, 'done');
+        assert.strictEqual(executed, true);
+
+        // Lock should be released automatically, so this will work:
+        assert.strictEqual(await lock.acquire(), true);
+        await lock.release();
+    });
+
+    it('can tag and flush specific groups', async () => {
+        const usersCache = Cache.tags(['users']);
+        const postsCache = Cache.tags(['posts']);
+
+        await usersCache.put('u1', 'user info', 10);
+        await postsCache.put('p1', 'post info', 10);
+
+        assert.strictEqual(await usersCache.get('u1'), 'user info');
+        assert.strictEqual(await postsCache.get('p1'), 'post info');
+
+        // Flush ONLY users cache
+        await usersCache.flush();
+
+        assert.strictEqual(await usersCache.get('u1'), null);
+        assert.strictEqual(await postsCache.get('p1'), 'post info'); // posts intact
+    });
 });

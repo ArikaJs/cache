@@ -61,6 +61,35 @@ export class MemoryDriver implements Store {
         this.storage.clear();
     }
 
+    async add(key: string, value: any, seconds: number): Promise<boolean> {
+        const item = this.storage.get(key);
+        if (item && (item.expiresAt === null || item.expiresAt > Date.now())) {
+            return false;
+        }
+        await this.put(key, value, seconds);
+        return true;
+    }
+
+    async getMultiple(keys: string[]): Promise<Record<string, any>> {
+        const results: Record<string, any> = {};
+        for (const key of keys) {
+            results[key] = await this.get(key);
+        }
+        return results;
+    }
+
+    async putMultiple(values: Record<string, any>, seconds: number): Promise<void> {
+        for (const [key, value] of Object.entries(values)) {
+            await this.put(key, value, seconds);
+        }
+    }
+
+    async forgetMultiple(keys: string[]): Promise<void> {
+        for (const key of keys) {
+            this.storage.delete(key);
+        }
+    }
+
     getPrefix(): string {
         return '';
     }

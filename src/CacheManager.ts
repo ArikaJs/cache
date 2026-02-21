@@ -80,4 +80,11 @@ export class CacheManager {
     public async pull(key: string, defaultValue: any = null) { return this.store().pull(key, defaultValue); }
     public async remember(key: string, seconds: number, callback: () => Promise<any>) { return this.store().remember(key, seconds, callback); }
     public async rememberForever(key: string, callback: () => Promise<any>) { return this.store().rememberForever(key, callback); }
+
+    // Enterprise methods
+    public async getMultiple(keys: string[]) { return this.store().getMultiple(keys); }
+    public async putMultiple(values: Record<string, any>, seconds: number) { return this.store().putMultiple(values, seconds); }
+    public async forgetMultiple(keys: string[]) { return this.store().forgetMultiple(keys); }
+    public lock(name: string, seconds: number = 0, owner: string | null = null) { return this.store().lock(name, seconds, owner); }
+    public tags(names: string | string[]) { return this.store().tags(names); }
 }
